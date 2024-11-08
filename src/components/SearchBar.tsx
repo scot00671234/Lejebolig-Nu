@@ -1,24 +1,23 @@
 import React from 'react';
-import { Search, MapPin, Home, DollarSign } from 'lucide-react';
+import { Search, MapPin, Home, DollarSign, Square } from 'lucide-react';
 import { SearchFilters } from '../types';
 
 interface SearchBarProps {
   filters: SearchFilters;
   onFilterChange: (filters: SearchFilters) => void;
-  onSortChange: (sort: 'price_asc' | 'price_desc' | null) => void;
 }
 
-export default function SearchBar({ filters, onFilterChange, onSortChange }: SearchBarProps) {
-  const locations = ['København', 'Aarhus', 'Odense', 'Aalborg', 'Frederiksberg'];
+export default function SearchBar({ filters, onFilterChange }: SearchBarProps) {
+  const locations = ['København', 'Aarhus', 'Odense', 'Aalborg', 'Frederiksberg', 'Esbjerg'];
   
   return (
     <div className="w-full bg-white rounded-xl shadow-lg p-6 space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="relative md:col-span-2">
           <Search className="absolute left-3 top-3 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Søg efter boliger..."
+            placeholder="Hvor vil du bo? (Ex: København)"
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             value={filters.query}
             onChange={(e) => onFilterChange({ ...filters, query: e.target.value })}
@@ -52,7 +51,9 @@ export default function SearchBar({ filters, onFilterChange, onSortChange }: Sea
             ))}
           </select>
         </div>
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative">
           <DollarSign className="absolute left-3 top-3 text-gray-400" size={20} />
           <select
@@ -67,18 +68,21 @@ export default function SearchBar({ filters, onFilterChange, onSortChange }: Sea
             <option value="999999">25.000+ kr</option>
           </select>
         </div>
-      </div>
 
-      <div className="flex justify-end">
-        <select
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          onChange={(e) => onSortChange(e.target.value as 'price_asc' | 'price_desc' | null)}
-          defaultValue=""
-        >
-          <option value="">Sortering</option>
-          <option value="price_asc">Pris: Lav til høj</option>
-          <option value="price_desc">Pris: Høj til lav</option>
-        </select>
+        <div className="relative">
+          <Square className="absolute left-3 top-3 text-gray-400" size={20} />
+          <select
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
+            value={filters.minSize}
+            onChange={(e) => onFilterChange({ ...filters, minSize: Number(e.target.value) })}
+          >
+            <option value="">Min. størrelse</option>
+            <option value="1">1+ m²</option>
+            {[50, 75, 100, 125, 150].map((size) => (
+              <option key={size} value={size}>{size}+ m²</option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );

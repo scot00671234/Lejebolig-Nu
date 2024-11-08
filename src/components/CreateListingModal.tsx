@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import { X, Upload, Plus, Trash2 } from 'lucide-react';
-import { Property } from '../types';
+import { X, Upload, Plus, Trash2, MapPin } from 'lucide-react';
+import { usePropertyStore } from '../store/propertyStore';
 
 interface CreateListingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (property: Omit<Property, 'id' | 'landlordId' | 'createdAt'>) => void;
 }
 
-export default function CreateListingModal({ isOpen, onClose, onSubmit }: CreateListingModalProps) {
+export default function CreateListingModal({ isOpen, onClose }: CreateListingModalProps) {
+  const { createProperty, error } = usePropertyStore();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
     location: '',
+    address: '',
+    latitude: 0,
+    longitude: 0,
     bedrooms: '',
     bathrooms: '',
     size: '',
@@ -23,55 +26,63 @@ export default function CreateListingModal({ isOpen, onClose, onSubmit }: Create
   });
 
   const [newAmenity, setNewAmenity] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const locations = ['København', 'Aarhus', 'Odense', 'Aalborg', 'Frederiksberg', 'Esbjerg'];
 
-  const locations = ['København', 'Aarhus', 'Odense', 'Aalborg', 'Frederiksberg'];
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     
-    // Ensure all required fields are filled
-    const newProperty = {
-      ...formData,
-      price: Number(formData.price),
-      bedrooms: Number(formData.bedrooms),
-      bathrooms: Number(formData.bathrooms),
-      size: Number(formData.size),
-      // Add a default image if none provided
-      images: formData.images.length > 0 ? formData.images : [
-        'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'
-      ]
-    };
-
-    onSubmit(newProperty);
-    onClose();
-  };
-
-  const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // For demo purposes, we'll use placeholder images
-      const demoImages = [
-        'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80',
-        'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80',
-        'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1000&q=80'
-      ];
-      
-      const randomImage = demoImages[Math.floor(Math.random() * demoImages.length)];
-      setFormData({
+    try {
+      await createProperty({
         ...formData,
-        images: [...formData.images, randomImage]
+        price: Number(formData.price),
+        bedrooms: Number(formData.bedrooms),
+        bathrooms: Number(formData.bathrooms),
+        size: Number(formData.size),
+        images: formData.images.length > 0 ? formData.images : [
+          'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'
+        ]
       });
+      onClose();
+    } catch (error) {
+      console.error('Error creating property:', error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const addAmenity = () => {
-    if (newAmenity && !formData.amenities.includes(newAmenity)) {
-      setFormData({
-        ...formData,
-        amenities: [...formData.amenities, newAmenity]
-      });
+  const handleAddAmenity = () => {
+    if (newAmenity.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        amenities: [...prev.amenities, newAmenity.trim()]
+      }));
       setNewAmenity('');
     }
+  };
+
+  const handleRemoveAmenity = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: prev.amenities.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleImageAdd = (url: string) => {
+    if (url.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, url.trim()]
+      }));
+    }
+  };
+
+  const handleImageRemove = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
   };
 
   if (!isOpen) return null;
@@ -86,29 +97,61 @@ export default function CreateListingModal({ isOpen, onClose, onSubmit }: Create
           </button>
         </div>
 
+        {error && (
+          <div className="p-4 bg-red-50 text-red-600">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Titel
+            </label>
+            <input
+              type="text"
+              required
+              className="w-full p-2 border border-gray-200 rounded-lg"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Beskrivelse
+            </label>
+            <textarea
+              required
+              rows={4}
+              className="w-full p-2 border border-gray-200 rounded-lg"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Pris pr. måned
               </label>
               <input
-                type="text"
+                type="number"
                 required
-                className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="F.eks. Moderne 3-værelses lejlighed med altan"
+                min="0"
+                className="w-full p-2 border border-gray-200 rounded-lg"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Beliggenhed
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                By
               </label>
               <select
                 required
-                className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-200 rounded-lg"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               >
@@ -120,162 +163,123 @@ export default function CreateListingModal({ isOpen, onClose, onSubmit }: Create
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pris pr. måned (kr)
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="F.eks. 12000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Størrelse (m²)
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                placeholder="F.eks. 85"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Antal værelser
               </label>
               <input
                 type="number"
                 required
                 min="1"
-                className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-200 rounded-lg"
                 value={formData.bedrooms}
                 onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })}
-                placeholder="F.eks. 3"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Antal badeværelser
               </label>
               <input
                 type="number"
                 required
                 min="1"
-                className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-200 rounded-lg"
                 value={formData.bathrooms}
                 onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })}
-                placeholder="F.eks. 1"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Størrelse (m²)
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                className="w-full p-2 border border-gray-200 rounded-lg"
+                value={formData.size}
+                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Beskrivelse
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Billeder (URLs)
             </label>
-            <textarea
-              required
-              rows={4}
-              className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Beskriv boligen, dens beliggenhed, og særlige kendetegn..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Billeder
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {formData.images.map((img, index) => (
-                <div key={index} className="relative aspect-square">
-                  <img
-                    src={img}
-                    alt={`Bolig billede ${index + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
+            <div className="space-y-2">
+              {formData.images.map((url, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="url"
+                    className="flex-1 p-2 border border-gray-200 rounded-lg"
+                    value={url}
+                    onChange={(e) => {
+                      const newImages = [...formData.images];
+                      newImages[index] = e.target.value;
+                      setFormData({ ...formData, images: newImages });
+                    }}
                   />
                   <button
                     type="button"
-                    onClick={() => setFormData({
-                      ...formData,
-                      images: formData.images.filter((_, i) => i !== index)
-                    })}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                    onClick={() => handleImageRemove(index)}
+                    className="p-2 text-red-600 hover:text-red-700"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={20} />
                   </button>
                 </div>
               ))}
-              <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500">
-                <Upload size={24} className="text-gray-400" />
-                <span className="text-sm text-gray-500 mt-2">Tilføj billede</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageAdd}
-                />
-              </label>
+              <button
+                type="button"
+                onClick={() => handleImageAdd('')}
+                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
+              >
+                <Plus size={20} />
+                <span>Tilføj billede</span>
+              </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Faciliteter
             </label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.amenities.map((amenity, index) => (
-                <span
-                  key={index}
-                  className="bg-gray-100 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 p-2 border border-gray-200 rounded-lg"
+                  value={newAmenity}
+                  onChange={(e) => setNewAmenity(e.target.value)}
+                  placeholder="F.eks. Parkering, Altan, etc."
+                />
+                <button
+                  type="button"
+                  onClick={handleAddAmenity}
+                  className="p-2 text-indigo-600 hover:text-indigo-700"
                 >
-                  {amenity}
-                  <button
-                    type="button"
-                    onClick={() => setFormData({
-                      ...formData,
-                      amenities: formData.amenities.filter((_, i) => i !== index)
-                    })}
-                    className="text-gray-500 hover:text-gray-700"
+                  <Plus size={20} />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.amenities.map((amenity, index) => (
+                  <span
+                    key={index}
+                    className="bg-gray-100 px-3 py-1 rounded-full text-sm text-gray-700 flex items-center gap-1"
                   >
-                    <X size={14} />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                value={newAmenity}
-                onChange={(e) => setNewAmenity(e.target.value)}
-                placeholder="F.eks. Altan, Parkering, Elevator..."
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addAmenity();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={addAmenity}
-                className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200"
-              >
-                <Plus size={24} />
-              </button>
+                    {amenity}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAmenity(index)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X size={16} />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -289,9 +293,10 @@ export default function CreateListingModal({ isOpen, onClose, onSubmit }: Create
             </button>
             <button
               type="submit"
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              disabled={submitting}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
-              Opret Annonce
+              {submitting ? 'Opretter...' : 'Opret Bolig'}
             </button>
           </div>
         </form>

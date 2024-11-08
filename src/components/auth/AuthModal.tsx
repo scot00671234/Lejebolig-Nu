@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { X, User, Building2 } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAuth: (user: { email: string; password: string; name?: string; type: 'landlord' | 'tenant' }) => void;
 }
 
-export default function AuthModal({ isOpen, onClose, onAuth }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+  const { signIn, signUp } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
   const [userType, setUserType] = useState<'landlord' | 'tenant'>('tenant');
   const [formData, setFormData] = useState({
@@ -15,17 +16,27 @@ export default function AuthModal({ isOpen, onClose, onAuth }: AuthModalProps) {
     password: '',
     name: '',
   });
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAuth({
-      email: formData.email,
-      password: formData.password,
-      ...(isLogin ? {} : { name: formData.name }),
-      type: userType,
-    });
+    setError(null);
+    
+    try {
+      if (isLogin) {
+        await signIn(formData.email, formData.password);
+      } else {
+        await signUp(formData.email, formData.password, {
+          name: formData.name,
+          type: userType,
+        });
+      }
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -39,6 +50,12 @@ export default function AuthModal({ isOpen, onClose, onAuth }: AuthModalProps) {
             <X size={24} />
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {!isLogin && (
           <div className="flex gap-4 mb-6">

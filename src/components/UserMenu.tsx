@@ -1,15 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User as UserIcon, LogOut, MessageCircle, Building } from 'lucide-react';
-import { User } from '../types';
+import { useAuthStore } from '../store/authStore';
 
 interface UserMenuProps {
-  user: User;
-  onLogout: () => void;
   onViewMessages: () => void;
   onViewListings?: () => void;
 }
 
-export default function UserMenu({ user, onLogout, onViewMessages, onViewListings }: UserMenuProps) {
+export default function UserMenu({ onViewMessages, onViewListings }: UserMenuProps) {
+  const { profile, signOut } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -24,6 +23,14 @@ export default function UserMenu({ user, onLogout, onViewMessages, onViewListing
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -31,12 +38,12 @@ export default function UserMenu({ user, onLogout, onViewMessages, onViewListing
         className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
       >
         <UserIcon size={20} />
-        <span>{user.name}</span>
+        <span>{profile?.name}</span>
       </button>
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
-          {user.type === 'landlord' && onViewListings && (
+          {profile?.type === 'landlord' && onViewListings && (
             <button
               onClick={() => {
                 onViewListings();
@@ -61,7 +68,7 @@ export default function UserMenu({ user, onLogout, onViewMessages, onViewListing
           </button>
           
           <button
-            onClick={onLogout}
+            onClick={handleSignOut}
             className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-50 text-red-600"
           >
             <LogOut size={20} />

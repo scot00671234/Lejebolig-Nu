@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home as HomeIcon } from 'lucide-react';
 import PropertyCard from './components/PropertyCard';
 import SearchBar from './components/SearchBar';
@@ -8,42 +8,24 @@ import MessageModal from './components/messaging/MessageModal';
 import ConversationsList from './components/messaging/ConversationsList';
 import UserMenu from './components/UserMenu';
 import PropertyDetails from './components/PropertyDetails';
-import { Property, SearchFilters, User, Conversation, Message } from './types';
-
-// Mock data for demonstration
-const mockProperties: Property[] = [
-  {
-    id: '1',
-    title: 'Moderne Lejlighed i Københavns Centrum',
-    description: 'Smuk lejlighed med udsigt over byen',
-    price: 12000,
-    location: 'København',
-    bedrooms: 2,
-    bathrooms: 1,
-    size: 85,
-    images: [
-      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'
-    ],
-    amenities: ['Parkering', 'Elevator', 'Altan'],
-    landlordId: 'l1',
-    available: true,
-    createdAt: new Date().toISOString(),
-  },
-  // ... other properties
-];
+import SortingOptions from './components/SortingOptions';
+import { SearchFilters, Property } from './types';
+import { useAuthStore } from './store/authStore';
+import { usePropertyStore } from './store/propertyStore';
+import { useMessageStore } from './store/messageStore';
 
 function App() {
-  const [properties, setProperties] = useState<Property[]>(mockProperties);
+  const { user, profile } = useAuthStore();
+  const { properties, loading: propertiesLoading, fetchProperties } = usePropertyStore();
+  const { conversations, fetchConversations, sendMessage } = useMessageStore();
+  
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showMessages, setShowMessages] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [sortOrder, setSortOrder] = useState<'price_asc' | 'price_desc' | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+  const [sortOrder, setSortOrder] = useState<'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | null>(null);
   
   const [filters, setFilters] = useState<SearchFilters>({
     query: '',
@@ -54,32 +36,18 @@ function App() {
     minSize: undefined,
   });
 
-  const handleAuth = (credentials: { email: string; password: string; name?: string; type: 'landlord' | 'tenant' }) => {
-    const user: User = {
-      id: Math.random().toString(),
-      email: credentials.email,
-      name: credentials.name || credentials.email.split('@')[0],
-      type: credentials.type,
-      createdAt: new Date().toISOString(),
-    };
-    setCurrentUser(user);
-    setIsAuthModalOpen(false);
-  };
+  useEffect(() => {
+    fetchProperties();
+  }, [fetchProperties]);
 
-  const handleCreateListing = (newProperty: Omit<Property, 'id' | 'landlordId' | 'createdAt'>) => {
-    if (!currentUser || currentUser.type !== 'landlord') return;
-    
-    const property: Property = {
-      ...newProperty,
-      id: (properties.length + 1).toString(),
-      landlordId: currentUser.id,
-      createdAt: new Date().toISOString(),
-    };
-    setProperties([property, ...properties]);
-  };
+  useEffect(() => {
+    if (user) {
+      fetchConversations();
+    }
+  }, [user, fetchConversations]);
 
   const handleContactLandlord = (property: Property) => {
-    if (!currentUser) {
+    if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
@@ -88,84 +56,77 @@ function App() {
     setIsMessageModalOpen(true);
   };
 
-  const handleSendMessage = (content: string) => {
-    if (!currentUser || !selectedProperty) return;
+  const handleSendMessage = async (content: string) => {
+    if (!user || !selectedProperty) return;
 
-    const newMessage: Message = {
-      id: Math.random().toString(),
-      senderId: currentUser.id,
-      receiverId: selectedProperty.landlordId,
-      propertyId: selectedProperty.id,
-      content,
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-
-    let conversation = conversations.find(
-      (c) => c.propertyId === selectedProperty.id &&
-      ((c.landlordId === currentUser.id && c.tenantId === selectedProperty.landlordId) ||
-       (c.landlordId === selectedProperty.landlordId && c.tenantId === currentUser.id))
-    );
-
-    if (!conversation) {
-      conversation = {
-        id: Math.random().toString(),
-        propertyId: selectedProperty.id,
-        landlordId: selectedProperty.landlordId,
-        tenantId: currentUser.id,
-        lastMessageAt: newMessage.createdAt,
-        messages: [],
-      };
-      setConversations([...conversations, conversation]);
+    try {
+      await sendMessage(content, selectedProperty.id, selectedProperty.landlordId);
+      setIsMessageModalOpen(false);
+      setSelectedProperty(null);
+      setSelectedConversation(null);
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
+  };
 
-    const updatedConversations = conversations.map((c) =>
-      c.id === conversation!.id
-        ? { ...c, messages: [...c.messages, newMessage], lastMessageAt: newMessage.createdAt }
-        : c
-    );
+  const filterProperties = (property: Property) => {
+    const searchQuery = filters.query.toLowerCase();
+    const matchesSearch = 
+      property.title.toLowerCase().includes(searchQuery) ||
+      property.description.toLowerCase().includes(searchQuery) ||
+      property.location.toLowerCase().includes(searchQuery) ||
+      property.price.toString().includes(searchQuery) ||
+      property.bedrooms.toString().includes(searchQuery) ||
+      property.size.toString().includes(searchQuery) ||
+      property.amenities.some(amenity => amenity.toLowerCase().includes(searchQuery));
 
-    setConversations(updatedConversations);
+    if (!matchesSearch) return false;
+    if (filters.location && property.location !== filters.location) return false;
+    if (filters.maxPrice && property.price > filters.maxPrice) return false;
+    if (filters.bedrooms && property.bedrooms < filters.bedrooms) return false;
+    if (filters.minSize && property.size < filters.minSize) return false;
+
+    return true;
+  };
+
+  const sortProperties = (a: Property, b: Property) => {
+    switch (sortOrder) {
+      case 'price_asc':
+        return a.price - b.price;
+      case 'price_desc':
+        return b.price - a.price;
+      case 'date_asc':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case 'date_desc':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      default:
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
   };
 
   const filteredAndSortedProperties = properties
-    .filter((property) => {
-      if (filters.query && !property.title.toLowerCase().includes(filters.query.toLowerCase())) {
-        return false;
-      }
-      if (filters.location && property.location !== filters.location) {
-        return false;
-      }
-      if (filters.maxPrice && property.price > filters.maxPrice) {
-        return false;
-      }
-      if (filters.bedrooms && property.bedrooms < filters.bedrooms) {
-        return false;
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortOrder === 'price_asc') {
-        return a.price - b.price;
-      } else if (sortOrder === 'price_desc') {
-        return b.price - a.price;
-      }
-      return 0;
-    });
+    .filter(filterProperties)
+    .sort(sortProperties);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setShowMessages(false);
+                setSelectedProperty(null);
+              }}
+              className="flex items-center gap-2 hover:text-indigo-600 transition-colors"
+            >
               <HomeIcon className="text-indigo-600" size={24} />
               <h1 className="text-xl font-bold text-gray-900">Lejebolig Nu</h1>
-            </div>
+            </button>
             <div className="flex items-center gap-4">
-              {currentUser ? (
+              {user ? (
                 <>
-                  {currentUser.type === 'landlord' && (
+                  {profile?.type === 'landlord' && (
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
                       className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -174,10 +135,8 @@ function App() {
                     </button>
                   )}
                   <UserMenu
-                    user={currentUser}
-                    onLogout={() => setCurrentUser(null)}
                     onViewMessages={() => setShowMessages(true)}
-                    onViewListings={currentUser.type === 'landlord' ? () => {} : undefined}
+                    onViewListings={profile?.type === 'landlord' ? () => {} : undefined}
                   />
                 </>
               ) : (
@@ -198,8 +157,8 @@ function App() {
           <ConversationsList
             conversations={conversations}
             properties={properties}
-            users={[]} // In a real app, this would be populated
-            currentUser={currentUser!}
+            users={[]}
+            currentUser={user!}
             onSelectConversation={(conversation) => {
               setSelectedConversation(conversation);
               setSelectedProperty(properties.find(p => p.id === conversation.propertyId)!);
@@ -207,10 +166,14 @@ function App() {
             }}
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <SearchBar 
               filters={filters} 
               onFilterChange={setFilters}
+            />
+
+            <SortingOptions
+              sortOrder={sortOrder}
               onSortChange={setSortOrder}
             />
 
@@ -218,15 +181,22 @@ function App() {
               <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                 {filteredAndSortedProperties.length} Ledige Boliger
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAndSortedProperties.map((property) => (
-                  <PropertyCard
-                    key={property.id}
-                    property={property}
-                    onClick={() => setSelectedProperty(property)}
-                  />
-                ))}
-              </div>
+              {propertiesLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedProperties.map((property) => (
+                    <PropertyCard
+                      key={property.id}
+                      property={property}
+                      onClick={() => setSelectedProperty(property)}
+                      onContact={() => handleContactLandlord(property)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -236,7 +206,6 @@ function App() {
         <CreateListingModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
-          onSubmit={handleCreateListing}
         />
       )}
 
@@ -244,11 +213,10 @@ function App() {
         <AuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
-          onAuth={handleAuth}
         />
       )}
 
-      {isMessageModalOpen && selectedProperty && currentUser && (
+      {isMessageModalOpen && selectedProperty && user && (
         <MessageModal
           isOpen={isMessageModalOpen}
           onClose={() => {
@@ -257,7 +225,7 @@ function App() {
             setSelectedConversation(null);
           }}
           property={selectedProperty}
-          currentUser={currentUser}
+          currentUser={user}
           messages={selectedConversation?.messages || []}
           onSendMessage={handleSendMessage}
         />
