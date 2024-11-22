@@ -1,92 +1,70 @@
 import { create } from 'zustand';
+import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { User } from '../types';
-import { mockUser } from '../mockData';
 
 interface AuthState {
   user: User | null;
-  loading: boolean;
-  error: string | null;
+  profile: any | null;
+  setUser: (user: User | null) => void;
+  setProfile: (profile: any | null) => void;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, type: 'tenant' | 'landlord') => Promise<void>;
+  signUp: (email: string, password: string, userData: any) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,  // Setting initial state to null (logged out)
-  loading: false,
-  error: null,
+  user: null,
+  profile: null,
+  setUser: (user) => set({ user }),
+  setProfile: (profile) => set({ profile }),
 
   signIn: async (email: string, password: string) => {
-    set({ loading: true });
-    try {
-      // For testing, just set the mock user
-      set({ user: mockUser, error: null });
-      return;
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
 
-      /*
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    set({ user: data.user });
 
-      if (error) throw error;
-      if (data.user) {
-        set({ user: data.user as User, error: null });
-      }
-      */
-    } catch (error: any) {
-      set({ error: error.message });
-      throw error;
-    } finally {
-      set({ loading: false });
-    }
+    // Fetch user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    set({ profile });
   },
 
-  signUp: async (email: string, password: string, name: string, type: 'tenant' | 'landlord') => {
-    set({ loading: true });
-    try {
-      // For testing, just set the mock user
-      set({ user: mockUser, error: null });
-      return;
+  signUp: async (email: string, password: string, userData: any) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) throw error;
 
-      /*
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            type,
+    if (data.user) {
+      // Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: data.user.id,
+            name: userData.name,
+            type: userData.type,
+            created_at: new Date().toISOString(),
           },
-        },
-      });
+        ]);
 
-      if (error) throw error;
-      if (data.user) {
-        set({ user: data.user as User, error: null });
-      }
-      */
-    } catch (error: any) {
-      set({ error: error.message });
-      throw error;
-    } finally {
-      set({ loading: false });
+      if (profileError) throw profileError;
+      set({ user: data.user });
     }
   },
 
   signOut: async () => {
-    try {
-      set({ user: null, error: null });
-      return;
-      /*
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      set({ user: null, error: null });
-      */
-    } catch (error: any) {
-      set({ error: error.message });
-      throw error;
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    set({ user: null, profile: null });
   },
 }));
