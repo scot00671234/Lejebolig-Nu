@@ -10,6 +10,7 @@ interface PropertyState {
   createProperty: (property: Omit<Property, 'id' | 'landlordId' | 'createdAt'>) => Promise<void>;
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
   deleteProperty: (id: string) => Promise<void>;
+  uploadImage: (file: File) => Promise<string>;
 }
 
 export const usePropertyStore = create<PropertyState>((set, get) => ({
@@ -96,6 +97,32 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
       set((state) => ({
         properties: state.properties.filter((p) => p.id !== id),
       }));
+    } catch (error: any) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
+  uploadImage: async (file: File) => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error('User not authenticated');
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${userData.user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('property-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('property-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
     } catch (error: any) {
       set({ error: error.message });
       throw error;

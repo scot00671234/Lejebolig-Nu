@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Building2 } from 'lucide-react';
+import { X, User, Building2, Mail, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 interface AuthModalProps {
@@ -17,6 +17,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     name: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   if (!isOpen) return null;
 
@@ -27,17 +28,67 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     try {
       if (isLogin) {
         await signIn(formData.email, formData.password);
+        onClose();
       } else {
         await signUp(formData.email, formData.password, {
           name: formData.name,
           type: userType,
         });
+        setIsSuccess(true);
       }
-      onClose();
     } catch (err: any) {
       setError(err.message);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl max-w-md w-full p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Tjek din email
+            </h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <Mail className="w-8 h-8 text-primary" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium text-gray-900">
+                Bekræft din email-adresse
+              </h3>
+              <p className="text-gray-600">
+                Vi har sendt en bekræftelsesmail til:
+              </p>
+              <p className="font-medium text-gray-900">{formData.email}</p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6">
+              <div className="flex gap-2 text-amber-700">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm text-left">
+                  Husk at tjekke din spam/junk mappe, hvis du ikke kan finde mailen i din indbakke.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary-hover transition-colors mt-4"
+            >
+              Luk
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

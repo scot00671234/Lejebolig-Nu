@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User as UserIcon, LogOut, MessageCircle, Building } from 'lucide-react';
+import { User as UserIcon, LogOut, MessageCircle, Building, Plus } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 interface UserMenuProps {
   onViewMessages: () => void;
   onViewListings?: () => void;
+  onCreateListing?: () => void;
 }
 
-export default function UserMenu({ onViewMessages, onViewListings }: UserMenuProps) {
+export default function UserMenu({ onViewMessages, onViewListings, onCreateListing }: UserMenuProps) {
   const { profile, signOut } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -43,17 +44,33 @@ export default function UserMenu({ onViewMessages, onViewListings }: UserMenuPro
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
-          {profile?.type === 'landlord' && onViewListings && (
-            <button
-              onClick={() => {
-                onViewListings();
-                setIsOpen(false);
-              }}
-              className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-50"
-            >
-              <Building size={20} />
-              <span>Mine Annoncer</span>
-            </button>
+          {profile?.type === 'landlord' && (
+            <>
+              {onCreateListing && (
+                <button
+                  onClick={() => {
+                    onCreateListing();
+                    setIsOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-50 text-primary font-medium"
+                >
+                  <Plus size={20} />
+                  <span>Lav boligopslag</span>
+                </button>
+              )}
+              {onViewListings && (
+                <button
+                  onClick={() => {
+                    onViewListings();
+                    setIsOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-50"
+                >
+                  <Building size={20} />
+                  <span>Mine annoncer</span>
+                </button>
+              )}
+            </>
           )}
           
           <button
