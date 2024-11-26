@@ -2,11 +2,18 @@ export interface Property {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: {
+    monthlyRent: number;
+    deposit: number;
+    prepaidRent: number;
+    utilities: number;
+    totalMoveInCost: number;
+  };
   location: string;
   address?: string;
   latitude?: number;
   longitude?: number;
+  propertyType: PropertyType;
   bedrooms: number;
   bathrooms: number;
   size: number;
@@ -14,7 +21,17 @@ export interface Property {
   amenities: string[];
   landlordId: string;
   available: boolean;
+  availableFrom: string; // ISO date string
   createdAt: string;
+  updatedAt: string;
+}
+
+export enum PropertyType {
+  APARTMENT = 'apartment',
+  HOUSE = 'house',
+  ROOM = 'room',
+  TOWNHOUSE = 'townhouse',
+  STUDIO = 'studio'
 }
 
 export interface SearchFilters {
@@ -24,7 +41,10 @@ export interface SearchFilters {
   maxPrice?: number;
   bedrooms?: number;
   minSize?: number;
+  availableFrom?: string; // New field for move-in date filter
 }
+
+export type SortOrder = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
 
 export interface User {
   id: string;

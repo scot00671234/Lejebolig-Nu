@@ -40,7 +40,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch
             <input
               type="text"
               placeholder="Hvor vil du bo? (Ex: København)"
-              className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-gray-900"
               value={filters.query}
               onChange={(e) => handleFilterChange('query', e.target.value)}
             />
@@ -76,13 +76,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch
               <Icons.Building size={24} strokeWidth={2} />
             </div>
             <select
-              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer text-gray-900"
               value={filters.propertyType || 'all'}
               onChange={(e) => handleFilterChange('propertyType', e.target.value)}
             >
-              <option value="all">Boligtype</option>
+              <option value="all" className="text-gray-900">Boligtype</option>
               {propertyTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
+                <option key={type.value} value={type.value} className="text-gray-900">{type.label}</option>
               ))}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -96,13 +96,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch
               <Icons.MapPin size={24} strokeWidth={2} />
             </div>
             <select
-              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer text-gray-900"
               value={filters.location || ''}
               onChange={(e) => handleFilterChange('location', e.target.value)}
             >
-              <option value="">Vælg lokation</option>
-              {locations.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
+              <option value="" className="text-gray-900">Vælg by</option>
+              {locations.map(location => (
+                <option key={location} value={location} className="text-gray-900">{location}</option>
               ))}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -116,15 +116,15 @@ const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch
               <Icons.DollarSign size={24} strokeWidth={2} />
             </div>
             <select
-              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer text-gray-900"
               value={filters.maxPrice || ''}
               onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : '')}
             >
-              <option value="">Maks pris</option>
+              <option value="" className="text-gray-900">Maks pris</option>
               {[5000, 10000, 15000, 20000, 25000].map(price => (
-                <option key={price} value={price}>Op til {price.toLocaleString('da-DK')} kr</option>
+                <option key={price} value={price} className="text-gray-900">Op til {price.toLocaleString('da-DK')} kr</option>
               ))}
-              <option value="999999">25.000+ kr</option>
+              <option value="999999" className="text-gray-900">25.000+ kr</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
               <Icons.ChevronDown size={20} />
@@ -137,13 +137,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch
               <Icons.Square size={24} strokeWidth={2} />
             </div>
             <select
-              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer text-gray-900"
               value={filters.minSize || ''}
               onChange={(e) => handleFilterChange('minSize', e.target.value ? Number(e.target.value) : '')}
             >
-              <option value="">Min. størrelse</option>
+              <option value="" className="text-gray-900">Min. størrelse</option>
               {[50, 75, 100, 125, 150].map(size => (
-                <option key={size} value={size}>{size}+ m²</option>
+                <option key={size} value={size} className="text-gray-900">{size}+ m²</option>
               ))}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -157,13 +157,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch
               <Icons.Home size={24} strokeWidth={2} />
             </div>
             <select
-              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+              className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer text-gray-900"
               value={filters.bedrooms || ''}
               onChange={(e) => handleFilterChange('bedrooms', e.target.value ? Number(e.target.value) : '')}
             >
-              <option value="">Antal værelser</option>
+              <option value="" className="text-gray-900">Antal værelser</option>
               {[1, 2, 3, 4, 5].map(num => (
-                <option key={num} value={num}>{num}+ Værelser</option>
+                <option key={num} value={num} className="text-gray-900">{num}+ Værelser</option>
               ))}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">

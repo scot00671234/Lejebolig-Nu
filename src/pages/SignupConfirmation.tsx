@@ -1,8 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 
 export default function SignupConfirmation() {
+  const location = useLocation();
+  const email = location.state?.email || '';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full text-center space-y-8">
@@ -12,16 +15,23 @@ export default function SignupConfirmation() {
             Velkommen til Lejebolig nu!
           </h2>
           <p className="mt-4 text-lg text-gray-600">
-            Din konto er blevet oprettet
+            Din konto er blevet oprettet succesfuldt
           </p>
         </div>
         
         <div className="space-y-4">
-          <p className="text-gray-600">
-            Vi har sendt en bekræftelsesmail til din email-adresse. Klik på linket i mailen for at bekræfte din konto.
-          </p>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-gray-700 mb-3">
+              Vi har sendt en bekræftelsesmail til <span className="font-medium">{email}</span>. For at færdiggøre din tilmelding:
+            </p>
+            <ul className="text-gray-600 text-left list-disc pl-5 space-y-2">
+              <li>Tjek din indbakke for en mail fra Lejebolig Nu</li>
+              <li>Hvis du ikke kan finde mailen, så tjek venligst din spam/junk mappe</li>
+              <li>Klik på bekræftelseslinket i mailen</li>
+            </ul>
+          </div>
           
-          <div className="space-y-2">
+          <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-500">
               Har du ikke modtaget mailen?
             </p>

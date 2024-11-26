@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePropertyStore } from '../store/propertyStore';
+import { useAuthStore } from '../store/authStore';
+import { useMessageStore } from '../store/messageStore';
 import PropertyMap from '../components/PropertyMap';
+import MessageModal from '../components/messaging/MessageModal';
 import { Property } from '../types';
-import { Building, Bath, BedDouble, Move, Calendar } from 'lucide-react';
+import { Building, Bath, BedDouble, Move, Calendar, MessageCircle } from 'lucide-react';
+import { formatPrice } from '../utils/formatters';
 
 export default function PropertyDetails() {
   const { id } = useParams<{ id: string }>();
   const { getProperty } = usePropertyStore();
+  const { user } = useAuthStore();
+  const { sendMessage } = useMessageStore();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -22,6 +29,17 @@ export default function PropertyDetails() {
 
     fetchProperty();
   }, [id, getProperty]);
+
+  const handleSendMessage = async (content: string) => {
+    if (property && user) {
+      try {
+        await sendMessage(content, property.id, property.landlordId);
+        setShowMessageModal(false);
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -62,7 +80,7 @@ export default function PropertyDetails() {
         {/* Detaljer */}
         <div className="p-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">{property.title}</h1>
-          <p className="text-xl text-blue-600 font-semibold mb-6">{property.price} kr. pr. måned</p>
+          <p className="text-xl text-blue-600 font-semibold mb-6">{formatPrice(property.price)} kr. pr. måned</p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="flex items-center gap-2">
@@ -107,7 +125,7 @@ export default function PropertyDetails() {
 
           {/* Kort */}
           {property.latitude && property.longitude && (
-            <div>
+            <div className="mb-8">
               <h2 className="text-xl font-semibold mb-2">Beliggenhed</h2>
               <div className="rounded-lg overflow-hidden">
                 <PropertyMap
@@ -118,8 +136,30 @@ export default function PropertyDetails() {
               </div>
             </div>
           )}
+
+          {/* Kontakt udlejer knap */}
+          <div className="mt-8">
+            <button
+              onClick={() => setShowMessageModal(true)}
+              className="w-fit mx-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base font-semibold"
+            >
+              <MessageCircle size={20} />
+              <span>Kontakt udlejer</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Message Modal */}
+      {showMessageModal && (
+        <MessageModal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          property={property}
+          currentUser={user}
+          onSendMessage={handleSendMessage}
+        />
+      )}
     </div>
   );
 }

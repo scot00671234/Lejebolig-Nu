@@ -1,3 +1,5 @@
+import { PropertyType } from '../types';
+
 export interface ValidationError {
   field: string;
   message: string;
@@ -8,6 +10,7 @@ export interface PropertyFormData {
   description: string;
   price: string;
   location: string;
+  propertyType: PropertyType;
   size: string;
   bedrooms: string;
   bathrooms: string;
@@ -25,6 +28,11 @@ export const validatePropertyForm = (data: PropertyFormData): ValidationError[] 
     errors.push({ field: 'title', message: 'Titel er påkrævet' });
   } else if (data.title.length < 5) {
     errors.push({ field: 'title', message: 'Titel skal være mindst 5 tegn' });
+  }
+
+  // Property Type validation
+  if (!data.propertyType || !Object.values(PropertyType).includes(data.propertyType)) {
+    errors.push({ field: 'propertyType', message: 'Vælg venligst en gyldig boligtype' });
   }
 
   // Description validation

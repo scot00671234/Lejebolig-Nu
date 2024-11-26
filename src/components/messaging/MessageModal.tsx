@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { X, Send } from 'lucide-react';
-import { Message, Property, User } from '../../types';
+import { Property, User } from '../../types';
 
 interface MessageModalProps {
   isOpen: boolean;
   onClose: () => void;
   property: Property;
-  currentUser: User;
-  messages: Message[];
+  currentUser: User | null;
   onSendMessage: (content: string) => void;
 }
 
@@ -16,7 +15,6 @@ export default function MessageModal({
   onClose,
   property,
   currentUser,
-  messages,
   onSendMessage,
 }: MessageModalProps) {
   const [newMessage, setNewMessage] = useState('');
@@ -33,7 +31,7 @@ export default function MessageModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full h-[600px] flex flex-col">
+      <div className="bg-white rounded-xl max-w-2xl w-full h-[400px] flex flex-col">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">{property.title}</h2>
@@ -44,44 +42,26 @@ export default function MessageModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.senderId === currentUser.id ? 'justify-end' : 'justify-start'
-              }`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.senderId === currentUser.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
-                }`}
-              >
-                <p>{message.content}</p>
-                <span className="text-xs opacity-75">
-                  {new Date(message.createdAt).toLocaleTimeString('da-DK')}
-                </span>
-              </div>
-            </div>
-          ))}
+        <div className="flex-1 p-4">
+          <p className="text-gray-600 mb-4">
+            Send en besked til udlejeren af denne bolig. Vær venlig at være konkret og høflig i din henvendelse.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Skriv en besked..."
-              className="flex-1 p-2 border border-gray-200 rounded-lg"
+          <div className="flex flex-col gap-3">
+            <textarea
+              placeholder="Skriv din besked her..."
+              className="w-full p-3 border border-gray-200 rounded-lg resize-none h-32"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
             />
             <button
               type="submit"
-              className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors w-full flex items-center justify-center gap-2"
             >
               <Send size={20} />
+              <span>Send besked</span>
             </button>
           </div>
         </form>

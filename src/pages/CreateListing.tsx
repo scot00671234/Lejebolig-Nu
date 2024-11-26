@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePropertyStore } from '../store/propertyStore';
-import { Property } from '../types';
+import { Property, PropertyType } from '../types';
 import { Upload, AlertCircle } from 'lucide-react';
 import { validatePropertyForm, ValidationError, PropertyFormData } from '../utils/validation';
 import PropertyPreview from '../components/PropertyPreview';
@@ -19,6 +19,7 @@ export default function CreateListing() {
     description: '',
     price: '',
     location: '',
+    propertyType: PropertyType.APARTMENT,
     size: '',
     bedrooms: '',
     bathrooms: '',
@@ -79,11 +80,12 @@ export default function CreateListing() {
     if (!validateForm()) return;
     
     try {
-      const propertyData: Omit<Property, 'id' | 'landlordId' | 'createdAt'> = {
+      const propertyData = {
         title: formData.title,
         description: formData.description,
         price: Number(formData.price),
         location: formData.location,
+        propertyType: formData.propertyType,
         size: Number(formData.size),
         bedrooms: Number(formData.bedrooms),
         bathrooms: Number(formData.bathrooms),
@@ -91,13 +93,14 @@ export default function CreateListing() {
         availableFrom: formData.availableFrom,
         petsAllowed: formData.petsAllowed,
         furnished: formData.furnished,
-        images: [], // This will be handled by createProperty
+        images: [] // Will be handled by createProperty
       };
 
       await createProperty(propertyData, images);
-      navigate('/'); // Redirect to home page after successful creation
-    } catch (err) {
+      navigate('/my-listings');
+    } catch (err: any) {
       console.error('Error creating property:', err);
+      setValidationErrors(prev => [...prev, { field: 'submit', message: err.message }]);
     }
   };
 
@@ -161,10 +164,34 @@ export default function CreateListing() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Opret ny boligannonce</h1>
 
-      <form onSubmit={e => { e.preventDefault(); if (validateForm()) setShowPreview(true); }} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           {renderField('title', 'Titel', 'text', 'F.eks. "Moderne 3-værelses lejlighed i centrum"')}
           
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Boligtype</label>
+            <div className="mt-1">
+              <select
+                id="propertyType"
+                value={formData.propertyType}
+                onChange={e => setFormData(prev => ({ ...prev, propertyType: e.target.value as PropertyType }))}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              >
+                <option value={PropertyType.APARTMENT}>Lejlighed</option>
+                <option value={PropertyType.HOUSE}>Hus</option>
+                <option value={PropertyType.ROOM}>Værelse</option>
+                <option value={PropertyType.TOWNHOUSE}>Rækkehus</option>
+                <option value={PropertyType.STUDIO}>Studio</option>
+              </select>
+              {getFieldError('propertyType') && (
+                <div className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                  <AlertCircle size={16} />
+                  <span>{getFieldError('propertyType')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700">Beskrivelse</label>
             <textarea

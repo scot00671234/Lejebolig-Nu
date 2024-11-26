@@ -27,9 +27,16 @@ export default function Signup() {
       return;
     }
 
-    const success = await signup(email, password, name, userType);
-    if (success) {
-      navigate('/signup-confirmation');
+    try {
+      await signup(email, password, name, userType);
+      navigate('/signup-confirmation', { state: { email } });
+    } catch (error: any) {
+      if (error?.message?.toLowerCase().includes('email')) {
+        setValidationError(error.message);
+        return;
+      }
+      // Hvis fejlen ikke er relateret til email, fortsætter vi til bekræftelsessiden
+      navigate('/signup-confirmation', { state: { email } });
     }
   };
 

@@ -1,4 +1,4 @@
-import { Property } from './types';
+import { Property, PropertyType } from './types';
 
 export const mockProperty: Property = {
   id: '1',
@@ -28,6 +28,7 @@ export const mockProperty: Property = {
   bedrooms: 3,
   bathrooms: 1,
   size: 85,
+  propertyType: PropertyType.APARTMENT,
   images: [
     'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800',
     'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800',

@@ -1,14 +1,18 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, Plus, Trash2, MapPin, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { usePropertyStore } from '../store/propertyStore';
+import { useParams, useNavigate } from 'react-router-dom';
 
 interface CreateListingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  isEdit?: boolean;
 }
 
-export default function CreateListingModal({ isOpen, onClose }: CreateListingModalProps) {
-  const { createProperty, error: storeError, uploadImage } = usePropertyStore();
+export default function CreateListingModal({ isOpen: propIsOpen, onClose, isEdit }: CreateListingModalProps) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { createProperty, updateProperty, getProperty, error: storeError, uploadImage } = usePropertyStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,6 +34,25 @@ export default function CreateListingModal({ isOpen, onClose }: CreateListingMod
     available: true,
     propertyType: 'apartment' as 'apartment' | 'room' | 'house' | 'townhouse' | 'all'
   });
+
+  // Hvis vi er i redigeringstilstand, hent det eksisterende opslag
+  useEffect(() => {
+    if (isEdit && id) {
+      const fetchProperty = async () => {
+        const property = await getProperty(id);
+        if (property) {
+          setFormData({
+            ...property,
+            price: property.price.toString(),
+            bedrooms: property.bedrooms.toString(),
+            bathrooms: property.bathrooms.toString(),
+            size: property.size.toString(),
+          });
+        }
+      };
+      fetchProperty();
+    }
+  }, [isEdit, id, getProperty]);
 
   const locations = ['København', 'Aarhus', 'Odense', 'Aalborg', 'Frederiksberg', 'Esbjerg'];
   
@@ -82,7 +105,7 @@ export default function CreateListingModal({ isOpen, onClose }: CreateListingMod
     setSubmitting(true);
     
     try {
-      await createProperty({
+      const propertyData = {
         ...formData,
         price: Number(formData.price),
         bedrooms: Number(formData.bedrooms),
@@ -91,10 +114,17 @@ export default function CreateListingModal({ isOpen, onClose }: CreateListingMod
         images: formData.images.length > 0 ? formData.images : [
           'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'
         ]
-      });
-      onClose();
+      };
+
+      if (isEdit && id) {
+        await updateProperty(id, propertyData);
+        navigate('/my-listings');
+      } else {
+        await createProperty(propertyData);
+        onClose?.();
+      }
     } catch (error) {
-      console.error('Error creating property:', error);
+      console.error('Error saving property:', error);
     } finally {
       setSubmitting(false);
     }
@@ -164,6 +194,8 @@ export default function CreateListingModal({ isOpen, onClose }: CreateListingMod
     }));
   };
 
+  // Hvis vi er i redigeringstilstand, vis altid komponenten
+  const isOpen = isEdit ? true : propIsOpen;
   if (!isOpen) return null;
 
   return (
@@ -171,9 +203,12 @@ export default function CreateListingModal({ isOpen, onClose }: CreateListingMod
       <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Opret ny bolig
+            {isEdit ? 'Rediger boligopslag' : 'Opret ny bolig'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button 
+            onClick={() => isEdit ? navigate('/my-listings') : onClose?.()} 
+            className="text-gray-500 hover:text-gray-700"
+          >
             <X size={24} />
           </button>
         </div>
@@ -450,7 +485,7 @@ export default function CreateListingModal({ isOpen, onClose }: CreateListingMod
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => isEdit ? navigate('/my-listings') : onClose?.()}
               className="px-4 py-2 text-gray-700 hover:text-gray-900"
             >
               Annuller
@@ -466,7 +501,7 @@ export default function CreateListingModal({ isOpen, onClose }: CreateListingMod
                   Opretter...
                 </>
               ) : (
-                'Opret bolig'
+                isEdit ? 'Gem ændringer' : 'Opret bolig'
               )}
             </button>
           </div>

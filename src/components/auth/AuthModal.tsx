@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Building2, Mail, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -18,30 +18,55 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset form when modal is closed
+      setError(null);
+      setIsSuccess(false);
+      setIsLoading(false);
+      setFormData({ email: '', password: '', name: '' });
+      setIsLogin(true);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
     
     try {
       if (isLogin) {
         await signIn(formData.email, formData.password);
         onClose();
       } else {
-        await signUp(formData.email, formData.password, {
+        console.log('Starting signup process...', formData.email);
+        const { success } = await signUp(formData.email, formData.password, {
           name: formData.name,
           type: userType,
         });
-        setIsSuccess(true);
+        console.log('Signup response:', success);
+        if (success) {
+          console.log('Setting success state to true');
+          setIsSuccess(true);
+        } else {
+          throw new Error('Der opstod en fejl under oprettelsen af din konto');
+        }
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error('Auth error:', err);
+      setError(err.message || 'Der opstod en fejl. Prøv igen.');
+      setIsSuccess(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (!isOpen) return null;
+
   if (isSuccess) {
+    console.log('Rendering success screen for:', formData.email);
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -55,8 +80,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
 
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-              <Mail className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+              <Mail className="w-8 h-8 text-blue-600" />
             </div>
             
             <div className="space-y-2">
@@ -80,7 +105,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
             <button
               onClick={onClose}
-              className="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary-hover transition-colors mt-4"
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors mt-4"
             >
               Luk
             </button>
@@ -115,24 +140,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               onClick={() => setUserType('tenant')}
               className={`flex-1 p-4 rounded-lg border-2 flex flex-col items-center gap-2 ${
                 userType === 'tenant'
-                  ? 'border-indigo-600 bg-indigo-50'
+                  ? 'border-blue-600 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <User size={24} className={userType === 'tenant' ? 'text-indigo-600' : 'text-gray-400'} />
-              <span className={userType === 'tenant' ? 'text-indigo-600' : 'text-gray-500'}>Lejer</span>
+              <User size={24} className={userType === 'tenant' ? 'text-blue-600' : 'text-gray-400'} />
+              <span className={userType === 'tenant' ? 'text-blue-600' : 'text-gray-500'}>Lejer</span>
             </button>
             <button
               type="button"
               onClick={() => setUserType('landlord')}
               className={`flex-1 p-4 rounded-lg border-2 flex flex-col items-center gap-2 ${
                 userType === 'landlord'
-                  ? 'border-indigo-600 bg-indigo-50'
+                  ? 'border-blue-600 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <Building2 size={24} className={userType === 'landlord' ? 'text-indigo-600' : 'text-gray-400'} />
-              <span className={userType === 'landlord' ? 'text-indigo-600' : 'text-gray-500'}>Udlejer</span>
+              <Building2 size={24} className={userType === 'landlord' ? 'text-blue-600' : 'text-gray-400'} />
+              <span className={userType === 'landlord' ? 'text-blue-600' : 'text-gray-500'}>Udlejer</span>
             </button>
           </div>
         )}
@@ -181,16 +206,32 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            disabled={isLoading}
+            className={`w-full bg-blue-600 text-white py-2 rounded-lg transition-colors ${
+              isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'
+            }`}
           >
-            {isLogin ? 'Log ind' : 'Opret konto'}
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                {isLogin ? 'Logger ind...' : 'Opretter konto...'}
+              </span>
+            ) : (
+              <span>{isLogin ? 'Log ind' : 'Opret konto'}</span>
+            )}
           </button>
         </form>
 
         <div className="mt-4 text-center">
           <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-indigo-600 hover:text-indigo-700"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError(null);
+            }}
+            className="text-blue-600 hover:text-blue-700"
           >
             {isLogin ? 'Opret ny konto' : 'Har du allerede en konto? Log ind'}
           </button>
