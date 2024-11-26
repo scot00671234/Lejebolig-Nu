@@ -98,6 +98,11 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
     try {
       set({ loading: true });
       
+      // Get current user's ID
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('Du skal være logget ind for at oprette et boligopslag');
+      
       const uploadedImageUrls: string[] = [];
       if (imageFiles && imageFiles.length > 0) {
         for (const file of imageFiles) {
@@ -122,6 +127,7 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
           pets_allowed: property.petsAllowed,
           furnished: property.furnished,
           images: uploadedImageUrls,
+          landlord_id: user.id,
           available: true
         }])
         .select()
@@ -181,6 +187,7 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
           available_from: updates.availableFrom,
           pets_allowed: updates.petsAllowed,
           furnished: updates.furnished,
+          images: updates.images,
           available: updates.available
         })
         .eq('id', id);
@@ -188,7 +195,7 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
       if (error) throw error;
 
       set(state => ({
-        properties: state.properties.map(p => 
+        properties: state.properties.map(p =>
           p.id === id ? { ...p, ...updates } : p
         ),
         error: null
@@ -224,19 +231,19 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const filePath = `property-images/${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
-        .from('property-images')
+      const { error: uploadError } = await supabase.storage
+        .from('properties')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('property-images')
+      const { data } = supabase.storage
+        .from('properties')
         .getPublicUrl(filePath);
 
-      return publicUrl;
+      return data.publicUrl;
     } catch (error: any) {
       console.error('Error uploading image:', error);
       throw error;

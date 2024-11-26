@@ -56,7 +56,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      setError(err.message || 'Der opstod en fejl. Prøv igen.');
+      setError('Tak for oprettelsen af din konto.\n\nTjek venligst din mail og junk mail for at bekræfte din konto via link.\n\nHvis der opstår problemer med oprettelse:\n1. Tjek at du har angivet korrekte oplysninger\n2. Tjek junk mail\n3. Tryk på bekræftelseslink');
       setIsSuccess(false);
     } finally {
       setIsLoading(false);
