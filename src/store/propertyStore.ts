@@ -234,13 +234,13 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
       const filePath = `property-images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('properties')
+        .from('property-images')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
-        .from('properties')
+        .from('property-images')
         .getPublicUrl(filePath);
 
       return data.publicUrl;
