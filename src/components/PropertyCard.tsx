@@ -26,14 +26,21 @@ export default function PropertyCard({ property }: PropertyCardProps) {
       onClick={() => navigate(`/property/${property.id}`)}
     >
       <div className="relative aspect-[16/9]">
-        {console.log('Property images:', property.images)}
+        {console.log('Rendering property:', {
+          id: property.id,
+          images: property.images,
+          firstImage: property.images?.[0]
+        })}
         <img
-          src={property.images[0] || '/placeholder-property.jpg'}
+          src={property.images?.[0] || 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'}
           alt={property.title}
           className="w-full h-full object-cover"
           onError={(e) => {
-            console.error('Image failed to load:', property.images[0]);
-            e.currentTarget.src = '/placeholder-property.jpg';
+            console.error('Image failed to load:', {
+              attemptedSrc: e.currentTarget.src,
+              propertyId: property.id
+            });
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80';
           }}
         />
       </div>

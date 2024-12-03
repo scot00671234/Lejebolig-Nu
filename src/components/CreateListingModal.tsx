@@ -158,24 +158,21 @@ export default function CreateListingModal({ isOpen: propIsOpen, onClose, isEdit
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          throw new Error('Please upload only image files');
+        try {
+          const url = await uploadImage(file);
+          imageUrls.push(url);
+        } catch (uploadError: any) {
+          // Vis fejlmeddelelse til brugeren
+          alert(uploadError.message || 'Fejl ved upload af billede');
         }
-
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error('Image size should be less than 5MB');
-        }
-
-        const url = await uploadImage(file);
-        imageUrls.push(url);
       }
 
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...imageUrls]
-      }));
+      if (imageUrls.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...imageUrls]
+        }));
+      }
     } catch (error: any) {
       console.error('Error uploading images:', error);
       alert(error.message);

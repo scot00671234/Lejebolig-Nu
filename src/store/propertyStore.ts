@@ -234,25 +234,52 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
 
   uploadImage: async (file: File) => {
     try {
+      // Validerings-checks
+      if (!file) {
+        console.error('No file provided');
+        throw new Error('No file provided');
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        console.error('Invalid file type', file.type);
+        throw new Error('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
+      }
+
+      if (file.size > 5 * 1024 * 1024) { // 5MB maks
+        console.error('File too large', file.size);
+        throw new Error('File is too large. Maximum size is 5MB.');
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `property-images/${fileName}`;
+
+      console.log('Uploading file:', {
+        fileName,
+        filePath,
+        fileSize: file.size,
+        fileType: file.type
+      });
 
       const { error: uploadError } = await supabase.storage
         .from('property-images')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+        throw uploadError;
+      }
 
       const { data } = supabase.storage
         .from('property-images')
         .getPublicUrl(filePath);
 
-      console.log('Generated image URL:', data.publicUrl);
+      console.log('Generated public URL:', data.publicUrl);
 
       return data.publicUrl;
     } catch (error: any) {
-      console.error('Error uploading image:', error);
+      console.error('Detailed upload error:', error);
       throw error;
     }
   }
