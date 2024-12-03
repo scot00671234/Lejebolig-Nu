@@ -105,11 +105,14 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
       
       const uploadedImageUrls: string[] = [];
       if (imageFiles && imageFiles.length > 0) {
+        console.log('Uploading images:', imageFiles);
         for (const file of imageFiles) {
           const imageUrl = await get().uploadImage(file);
+          console.log('Uploaded image URL:', imageUrl);
           uploadedImageUrls.push(imageUrl);
         }
       }
+      console.log('Final uploaded image URLs:', uploadedImageUrls);
 
       const { data, error } = await supabase
         .from('properties')
@@ -134,6 +137,8 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         .single();
 
       if (error) throw error;
+
+      console.log('Saved property with images:', data.images);
 
       const newProperty = {
         id: data.id,
