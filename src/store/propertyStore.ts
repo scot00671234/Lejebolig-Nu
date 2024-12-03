@@ -6,7 +6,7 @@ interface PropertyState {
   properties: Property[];
   loading: boolean;
   error: string | null;
-  fetchProperties: () => Promise<void>;
+  fetchProperties: () => Promise<Property[]>;
   getProperty: (id: string) => Promise<Property | null>;
   createProperty: (property: Omit<Property, 'id' | 'landlordId' | 'createdAt'>, imageFiles?: File[]) => Promise<Property>;
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
@@ -20,15 +20,19 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
   error: null,
 
   fetchProperties: async () => {
-    set({ loading: true });
     try {
       const { data, error } = await supabase
         .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
+      if (error) {
+        console.error('Detailed properties fetch error:', error);
+        throw error;
+      }
+
+      console.log('Fetched properties raw data:', data);
+
       const properties = data.map(property => ({
         id: property.id,
         title: property.title,
@@ -43,18 +47,23 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         availableFrom: property.available_from,
         petsAllowed: property.pets_allowed,
         furnished: property.furnished,
-        images: property.images || [],
+        images: property.images || [], // Sikrer altid et array
+        firstImage: property.images && property.images.length > 0 
+          ? property.images[0] 
+          : 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80',
         landlordId: property.landlord_id,
         createdAt: property.created_at,
         available: property.available
       }));
 
+      console.log('Processed properties:', properties);
+
       set({ properties, error: null });
+      return properties;
     } catch (error: any) {
       console.error('Error fetching properties:', error);
       set({ error: error.message });
-    } finally {
-      set({ loading: false });
+      return [];
     }
   },
 
@@ -98,6 +107,16 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
     try {
       set({ loading: true });
       
+      // Log alt input data
+      console.log('Creating property with data:', {
+        property,
+        imageFiles: imageFiles?.map(f => ({
+          name: f.name,
+          size: f.size,
+          type: f.type
+        }))
+      });
+      
       // Get current user's ID
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
@@ -107,12 +126,21 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
       if (imageFiles && imageFiles.length > 0) {
         console.log('Uploading images:', imageFiles);
         for (const file of imageFiles) {
-          const imageUrl = await get().uploadImage(file);
-          console.log('Uploaded image URL:', imageUrl);
-          uploadedImageUrls.push(imageUrl);
+          try {
+            const imageUrl = await get().uploadImage(file);
+            console.log('Uploaded image URL:', imageUrl);
+            uploadedImageUrls.push(imageUrl);
+          } catch (uploadError) {
+            console.error('Failed to upload individual image:', uploadError);
+          }
         }
       }
       console.log('Final uploaded image URLs:', uploadedImageUrls);
+
+      // Tilføj fallback billede hvis ingen billeder er uploadet
+      const finalImageUrls = uploadedImageUrls.length > 0 
+        ? uploadedImageUrls 
+        : ['https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'];
 
       const { data, error } = await supabase
         .from('properties')
@@ -129,16 +157,19 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
           available_from: property.availableFrom,
           pets_allowed: property.petsAllowed,
           furnished: property.furnished,
-          images: uploadedImageUrls,
+          images: finalImageUrls,
           landlord_id: user.id,
           available: true
         }])
         .select()
         .single();
 
-      if (error) throw error;
-
-      console.log('Saved property with images:', data.images);
+      // Log database insert resultat
+      console.log('Database insert result:', { data, error });
+      if (error) {
+        console.error('Detailed database insert error:', error);
+        throw error;
+      }
 
       const newProperty = {
         id: data.id,
@@ -154,11 +185,14 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         availableFrom: data.available_from,
         petsAllowed: data.pets_allowed,
         furnished: data.furnished,
-        images: data.images || [],
+        images: data.images || finalImageUrls,
         landlordId: data.landlord_id,
         createdAt: data.created_at,
         available: data.available
       };
+
+      // Log den nye ejendom
+      console.log('New property created:', newProperty);
 
       set(state => ({ 
         properties: [newProperty, ...state.properties],
@@ -167,7 +201,10 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
 
       return newProperty;
     } catch (error: any) {
-      console.error('Error creating property:', error);
+      console.error('Comprehensive error creating property:', {
+        message: error.message,
+        fullError: error
+      });
       set({ error: error.message });
       throw error;
     } finally {

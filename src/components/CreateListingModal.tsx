@@ -111,16 +111,22 @@ export default function CreateListingModal({ isOpen: propIsOpen, onClose, isEdit
         bedrooms: Number(formData.bedrooms),
         bathrooms: Number(formData.bathrooms),
         size: Number(formData.size),
-        images: formData.images.length > 0 ? formData.images : [
-          'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'
-        ]
       };
+
+      // Find de faktiske billedfiler
+      const imageFiles = formData.images.map(imageUrl => 
+        fetch(imageUrl).then(r => r.blob()).then(blob => 
+          new File([blob], `property-image-${Math.random()}.jpg`, { type: 'image/jpeg' })
+        )
+      );
+
+      const uploadedImageFiles = await Promise.all(imageFiles);
 
       if (isEdit && id) {
         await updateProperty(id, propertyData);
         navigate('/my-listings');
       } else {
-        await createProperty(propertyData);
+        await createProperty(propertyData, uploadedImageFiles);
         onClose?.();
       }
     } catch (error) {
