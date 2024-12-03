@@ -1,13 +1,30 @@
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
 
-interface SearchBarProps {
-  filters: any;
-  onFilterChange: (filters: any) => void;
-  onSearch?: (query: string) => void;
+interface SearchFilters {
+  query: string;
+  location: string;
+  propertyType: string;
+  maxPrice: number;
+  minSize: number;
+  bedrooms: number;
+  availability?: string;
+  availableFrom?: string;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch }) => {
+interface SearchBarProps {
+  filters: SearchFilters;
+  onFilterChange: (filters: SearchFilters) => void;
+  onSearch?: (query: string) => void;
+  showAvailabilityFilter?: boolean;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ 
+  filters, 
+  onFilterChange, 
+  onSearch, 
+  showAvailabilityFilter = false 
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const locations = ['København', 'Aarhus', 'Odense', 'Aalborg', 'Frederiksberg', 'Esbjerg'];
   
@@ -170,6 +187,42 @@ const SearchBar: React.FC<SearchBarProps> = ({ filters, onFilterChange, onSearch
               <Icons.ChevronDown size={20} />
             </div>
           </div>
+
+          {/* Tilgængelighed */}
+          {showAvailabilityFilter && (
+            <>
+              <div className="relative group">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 group-hover:text-blue-500 transition-colors">
+                  <Icons.Clock size={24} strokeWidth={2} />
+                </div>
+                <select
+                  className="w-full pl-12 pr-10 py-3 rounded-lg border border-gray-300 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer text-gray-900"
+                  value={filters.availability || ''}
+                  onChange={(e) => handleFilterChange('availability', e.target.value)}
+                >
+                  <option value="" className="text-gray-900">Tilgængelighed</option>
+                  <option value="now" className="text-gray-900">Ledig nu</option>
+                  <option value="future" className="text-gray-900">Fremtidig</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                  <Icons.ChevronDown size={20} />
+                </div>
+              </div>
+
+              <div className="relative group">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 group-hover:text-blue-500 transition-colors">
+                  <Icons.Calendar size={24} strokeWidth={2} />
+                </div>
+                <input
+                  type="date"
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-gray-900"
+                  value={filters.availableFrom || ''}
+                  onChange={(e) => handleFilterChange('availableFrom', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </form>

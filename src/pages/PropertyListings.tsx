@@ -31,7 +31,8 @@ export default function PropertyListings() {
     bedrooms: undefined,
     minSize: undefined,
     propertyType: 'all',
-    availability: 'all'
+    availability: 'all',
+    availableFrom: undefined
   });
   const [sortOrder, setSortOrder] = useState<'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -76,8 +77,26 @@ export default function PropertyListings() {
       return false;
     }
 
-    if (filters.availability !== 'all' && property.availability !== filters.availability) {
-      return false;
+    if (filters.availability !== 'all') {
+      const today = new Date();
+      const propertyAvailableFrom = property.availableFrom ? new Date(property.availableFrom) : today;
+
+      if (filters.availability === 'now' && propertyAvailableFrom > today) {
+        return false;
+      }
+
+      if (filters.availability === 'future' && propertyAvailableFrom <= today) {
+        return false;
+      }
+    }
+
+    if (filters.availableFrom) {
+      const filterDate = new Date(filters.availableFrom);
+      const propertyAvailableFrom = property.availableFrom ? new Date(property.availableFrom) : today;
+
+      if (propertyAvailableFrom > filterDate) {
+        return false;
+      }
     }
 
     return true;
@@ -114,6 +133,7 @@ export default function PropertyListings() {
                 <SearchBar 
                   filters={filters} 
                   onFilterChange={setFilters}
+                  showAvailabilityFilter={true}
                 />
               </div>
             </div>

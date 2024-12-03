@@ -35,13 +35,15 @@ export enum PropertyType {
 }
 
 export interface SearchFilters {
-  query: string;
-  location: string;
+  query?: string;
+  location?: string;
   minPrice?: number;
   maxPrice?: number;
   bedrooms?: number;
   minSize?: number;
-  availableFrom?: string; // New field for move-in date filter
+  propertyType?: 'all' | 'apartment' | 'house' | 'room' | 'townhouse';
+  availability?: 'all' | 'now' | 'future';
+  availableFrom?: string;
 }
 
 export type SortOrder = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
