@@ -20,26 +20,29 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     });
   };
 
+  const firstImage = property.images && property.images.length > 0 
+    ? property.images[0] 
+    : 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80';
+
+  console.log('Rendering property card:', {
+    id: property.id,
+    title: property.title,
+    images: property.images,
+    firstImage
+  });
+
   return (
     <div 
       className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
       onClick={() => navigate(`/property/${property.id}`)}
     >
       <div className="relative aspect-[16/9]">
-        {console.log('Rendering property:', {
-          id: property.id,
-          images: property.images,
-          firstImage: property.images?.[0]
-        })}
-        <img
-          src={property.images?.[0] || 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'}
-          alt={property.title}
+        <img 
+          src={firstImage} 
+          alt={property.title} 
           className="w-full h-full object-cover"
           onError={(e) => {
-            console.error('Image failed to load:', {
-              attemptedSrc: e.currentTarget.src,
-              propertyId: property.id
-            });
+            console.error('Image load error:', firstImage);
             e.currentTarget.src = 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80';
           }}
         />

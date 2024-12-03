@@ -157,7 +157,7 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
           available_from: property.availableFrom,
           pets_allowed: property.petsAllowed,
           furnished: property.furnished,
-          images: finalImageUrls,
+          images: finalImageUrls,  // Sikrer at billeder bliver gemt
           landlord_id: user.id,
           available: true
         }])
@@ -185,7 +185,10 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         availableFrom: data.available_from,
         petsAllowed: data.pets_allowed,
         furnished: data.furnished,
-        images: data.images || finalImageUrls,
+        images: data.images || finalImageUrls,  // Sikrer billeder
+        firstImage: data.images && data.images.length > 0 
+          ? data.images[0] 
+          : 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80',
         landlordId: data.landlord_id,
         createdAt: data.created_at,
         available: data.available
@@ -288,8 +291,8 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         throw new Error('File is too large. Maximum size is 5MB.');
       }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `property-images/${fileName}`;
 
       console.log('Uploading file:', {
@@ -299,25 +302,33 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         fileType: file.type
       });
 
-      const { error: uploadError } = await supabase.storage
+      // Direkte upload via Supabase Storage
+      const { data, error } = await supabase.storage
         .from('property-images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) {
-        console.error('Upload error details:', uploadError);
-        throw uploadError;
+      if (error) {
+        console.error('Supabase storage upload error:', error);
+        throw error;
       }
 
-      const { data } = supabase.storage
+      // Hent public URL
+      const { data: urlData } = supabase.storage
         .from('property-images')
         .getPublicUrl(filePath);
 
-      console.log('Generated public URL:', data.publicUrl);
+      console.log('Generated public URL:', urlData.publicUrl);
 
-      return data.publicUrl;
+      return urlData.publicUrl;
     } catch (error: any) {
-      console.error('Detailed upload error:', error);
+      console.error('Comprehensive image upload error:', {
+        message: error.message,
+        fullError: error
+      });
       throw error;
     }
-  }
+  },
 }));
