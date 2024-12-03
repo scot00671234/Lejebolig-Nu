@@ -12,6 +12,7 @@ interface PropertyState {
   updateProperty: (id: string, updates: Partial<Property>) => Promise<void>;
   deleteProperty: (id: string) => Promise<void>;
   uploadImage: (file: File) => Promise<string>;
+  filterAvailableProperties: (fromDate?: string) => Property[];
 }
 
 export const usePropertyStore = create<PropertyState>((set, get) => ({
@@ -142,6 +143,11 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         ? uploadedImageUrls 
         : ['https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1000&q=80'];
 
+      // Konverter availableFrom til en gyldig dato, eller brug dags dato
+      const availableFrom = property.availableFrom 
+        ? new Date(property.availableFrom).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+
       const { data, error } = await supabase
         .from('properties')
         .insert([{
@@ -154,7 +160,7 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
           bedrooms: property.bedrooms,
           bathrooms: property.bathrooms,
           deposit: property.deposit,
-          available_from: property.availableFrom,
+          available_from: availableFrom,  // Sikrer korrekt datoformat
           pets_allowed: property.petsAllowed,
           furnished: property.furnished,
           images: finalImageUrls,  // Sikrer at billeder bliver gemt
@@ -330,5 +336,25 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
       });
       throw error;
     }
+  },
+
+  filterAvailableProperties: (fromDate?: string) => {
+    const { properties } = get();
+    
+    if (!fromDate) {
+      // Hvis ingen dato er angivet, vis alle ledige boliger
+      return properties.filter(property => property.available);
+    }
+
+    return properties.filter(property => {
+      // Konverter datoer til Date objekter for sammenligning
+      const propertyAvailableFrom = property.availableFrom 
+        ? new Date(property.availableFrom) 
+        : new Date();
+      const filterDate = new Date(fromDate);
+
+      // Tjek om boligen er ledig fra den valgte dato
+      return property.available && propertyAvailableFrom <= filterDate;
+    });
   },
 }));

@@ -32,8 +32,12 @@ export default function CreateListingModal({ isOpen: propIsOpen, onClose, isEdit
     images: [] as string[],
     amenities: [] as string[],
     available: true,
-    propertyType: 'apartment' as 'apartment' | 'room' | 'house' | 'townhouse' | 'all'
+    propertyType: 'apartment' as 'apartment' | 'room' | 'house' | 'townhouse' | 'all',
+    availableFrom: ''
   });
+
+  // Tilføj en ny state for tilgængelighed
+  const [availabilityType, setAvailabilityType] = useState<'now' | 'specific'>('now');
 
   // Hvis vi er i redigeringstilstand, hent det eksisterende opslag
   useEffect(() => {
@@ -111,6 +115,9 @@ export default function CreateListingModal({ isOpen: propIsOpen, onClose, isEdit
         bedrooms: Number(formData.bedrooms),
         bathrooms: Number(formData.bathrooms),
         size: Number(formData.size),
+        availableFrom: availabilityType === 'now' 
+          ? new Date().toISOString().split('T')[0] 
+          : formData.availableFrom
       };
 
       // Find de faktiske billedfiler
@@ -418,6 +425,56 @@ export default function CreateListingModal({ isOpen: propIsOpen, onClose, isEdit
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tilgængelighed
+              </label>
+              <div className="mt-2 space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="availabilityType"
+                    value="now"
+                    checked={availabilityType === 'now'}
+                    onChange={() => setAvailabilityType('now')}
+                    className="form-radio"
+                  />
+                  <span className="ml-2">Ledig nu</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="availabilityType"
+                    value="specific"
+                    checked={availabilityType === 'specific'}
+                    onChange={() => setAvailabilityType('specific')}
+                    className="form-radio"
+                  />
+                  <span className="ml-2">Specifik dato</span>
+                </label>
+              </div>
+              
+              {availabilityType === 'specific' && (
+                <div className="mt-2">
+                  <label htmlFor="availableFrom" className="block text-sm font-medium text-gray-700">
+                    Ledig fra dato
+                  </label>
+                  <input
+                    type="date"
+                    id="availableFrom"
+                    name="availableFrom"
+                    value={formData.availableFrom || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      availableFrom: e.target.value
+                    }))}
+                    min={new Date().toISOString().split('T')[0]} // Forhindrer valg af tidligere datoer
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="md:col-span-2">
