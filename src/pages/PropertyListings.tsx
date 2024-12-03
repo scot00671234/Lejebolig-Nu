@@ -6,6 +6,7 @@ import PropertyCard from '../components/PropertyCard';
 import CreateListingModal from '../components/CreateListingModal';
 import SearchBar from '../components/SearchBar';
 import SortingOptions from '../components/SortingOptions';
+import AvailabilityFilter from '../components/AvailabilityFilter';
 import { SearchFilters } from '../types';
 import { useMessageStore } from '../store/messageStore';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +30,8 @@ export default function PropertyListings() {
     maxPrice: undefined,
     bedrooms: undefined,
     minSize: undefined,
-    propertyType: 'all'
+    propertyType: 'all',
+    availability: 'all'
   });
   const [sortOrder, setSortOrder] = useState<'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -71,6 +73,10 @@ export default function PropertyListings() {
     }
 
     if (filters.propertyType !== 'all' && property.propertyType !== filters.propertyType) {
+      return false;
+    }
+
+    if (filters.availability !== 'all' && property.availability !== filters.availability) {
       return false;
     }
 
@@ -140,6 +146,8 @@ export default function PropertyListings() {
               </h2>
               <SortingOptions sortOrder={sortOrder} onSortChange={setSortOrder} />
             </div>
+
+            <AvailabilityFilter filters={filters} onFilterChange={setFilters} />
 
             {loading ? (
               <div className="text-center py-12">
