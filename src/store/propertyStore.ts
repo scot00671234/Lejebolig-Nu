@@ -243,6 +243,8 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
         .from('property-images')
         .getPublicUrl(filePath);
 
+      console.log('Generated image URL:', data.publicUrl);
+
       return data.publicUrl;
     } catch (error: any) {
       console.error('Error uploading image:', error);

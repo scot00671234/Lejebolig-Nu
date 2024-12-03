@@ -26,10 +26,15 @@ export default function PropertyCard({ property }: PropertyCardProps) {
       onClick={() => navigate(`/property/${property.id}`)}
     >
       <div className="relative aspect-[16/9]">
+        {console.log('Property images:', property.images)}
         <img
           src={property.images[0] || '/placeholder-property.jpg'}
           alt={property.title}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            console.error('Image failed to load:', property.images[0]);
+            e.currentTarget.src = '/placeholder-property.jpg';
+          }}
         />
       </div>
       
